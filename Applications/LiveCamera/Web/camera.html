@@ -24,7 +24,15 @@
         }
 
         var draw = function(){
-            backcontext.drawImage(video,0,0, back.width, back.height);
+            try{
+                backcontext.drawImage(video,0,0, back.width, back.height);
+            }catch(e){
+                if (e.name == "NS_ERROR_NOT_AVAILABLE") {
+                    return setTimeout(draw, 100);
+                } else {
+                    throw e;
+                }
+            }
             socket.send(back.toDataURL("image/jpeg", 0.5));
             setTimeout(draw, 100);
         }
