@@ -5,7 +5,7 @@
 
 1、摄像头录制页面 http://live-camera.workerman.net/camera.html
 
-2、实时接收ascii码视频流页面 http://live-camera.workerman.net/
+2、实时接收视频流页面 http://live-camera.workerman.net/
 
 
 ##  使用方法
