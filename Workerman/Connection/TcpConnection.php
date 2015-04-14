@@ -88,8 +88,14 @@ class TcpConnection extends ConnectionInterface
     public $worker = null;
     
     /**
-     * 发送缓冲区大小，当发送缓冲区满时，会尝试触发onError回调（如果有设置的话）
-     * 如果没设置onError回调，发送缓冲区满，则后续发送的数据将被丢弃，
+     * 连接的id，一个自增整数
+     * @var int
+     */
+    public $id = 0;
+    
+    /**
+     * 发送缓冲区大小，当发送缓冲区满时，会尝试触发onBufferFull回调（如果有设置的话）
+     * 如果没设置onBufferFull回调，由于发送缓冲区满，则后续发送的数据将被丢弃，
      * 直到发送缓冲区有空的位置
      * 注意 此值可以动态设置
      * 例如 Workerman\Connection\TcpConnection::$maxSendBufferSize=1024000;
@@ -104,6 +110,12 @@ class TcpConnection extends ConnectionInterface
      * @var int
      */
     public static $maxPackageSize = 10485760;
+    
+    /**
+     * id 记录器
+     * @var int
+     */
+    protected static $_idRecorder = 1;
     
     /**
      * 实际的socket资源
@@ -167,6 +179,7 @@ class TcpConnection extends ConnectionInterface
      */
     public function __construct($socket)
     {
+        $this->id = self::$_idRecorder++;
         $this->_socket = $socket;
         stream_set_blocking($this->_socket, 0);
         Worker::$globalEvent->add($this->_socket, EventInterface::EV_READ, array($this, 'baseRead'));
@@ -506,7 +519,7 @@ class TcpConnection extends ConnectionInterface
      */
     public function close($data = null)
     {
-        if($this->_status == self::STATUS_CLOSING)
+        if($this->_status == self::STATUS_CLOSING || $this->_status == self::STATUS_CLOSED)
         {
             return false;
         }
@@ -558,9 +571,29 @@ class TcpConnection extends ConnectionInterface
      * 销毁连接
      * @void
      */
-    protected function destroy()
+    public function destroy()
     {
+        // 避免重复调用
+        if($this->_status == self::STATUS_CLOSED)
+        {
+            return false;
+        }
+        // 删除事件监听
+        Worker::$globalEvent->del($this->_socket, EventInterface::EV_READ);
+        Worker::$globalEvent->del($this->_socket, EventInterface::EV_WRITE);
+        // 关闭socket
+        @fclose($this->_socket);
+        
+        // 从连接中删除
+        if($this->worker)
+        {
+            unset($this->worker->connections[(int)$this->_socket]);
+        }
+        // 标记该连接已经关闭
+       $this->_status = self::STATUS_CLOSED;
+       // 连接计数减一
        self::$statistics['connection_count']--;
+       // 触发onClose回调
        if($this->onClose)
        {
            try
@@ -573,13 +606,5 @@ class TcpConnection extends ConnectionInterface
                echo $e;
            }
        }
-       if($this->worker)
-       {
-           unset($this->worker->connections[(int)$this->_socket]);
-       }
-       Worker::$globalEvent->del($this->_socket, EventInterface::EV_READ);
-       Worker::$globalEvent->del($this->_socket, EventInterface::EV_WRITE);
-       @fclose($this->_socket);
-       $this->_status = self::STATUS_CLOSED;
     }
 }
