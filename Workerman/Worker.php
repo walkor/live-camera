@@ -1,4 +1,16 @@
 <?php
+/**
+ * This file is part of workerman.
+ *
+ * Licensed under The MIT License
+ * For full copyright and license information, please see the MIT-LICENSE.txt
+ * Redistributions of files must retain the above copyright notice.
+ *
+ * @author walkor<walkor@workerman.net>
+ * @copyright walkor<walkor@workerman.net>
+ * @link http://www.workerman.net/
+ * @license http://www.opensource.org/licenses/mit-license.php MIT License
+ */
 namespace Workerman;
 
 use \Workerman\Events\Libevent;
@@ -12,8 +24,8 @@ use \Workerman\Autoloader;
 use \Exception;
 
 /**
- * 
- * @author walkor<walkor@workerman.net>
+ * Worker 类
+ * 是一个容器，用于监听端口，维持客户端连接
  */
 class Worker
 {
@@ -21,7 +33,7 @@ class Worker
      * 版本号
      * @var string
      */
-    const VERSION = '3.1.4';
+    const VERSION = '3.1.7';
     
     /**
      * 状态 启动中
@@ -310,14 +322,14 @@ class Worker
         self::initWorkers();
         //  初始化所有信号处理函数
         self::installSignal();
-        // 展示启动界面
-        self::displayUI();
-        // 尝试重定向标准输入输出
-        self::resetStd();
         // 保存主进程pid
         self::saveMasterPid();
         // 创建子进程（worker进程）并运行
         self::forkWorkers();
+        // 展示启动界面
+        self::displayUI();
+        // 尝试重定向标准输入输出
+        self::resetStd();
         // 监控所有子进程（worker进程）
         self::monitorWorkers();
     }
@@ -410,7 +422,7 @@ class Worker
     protected static function displayUI()
     {
         echo "\033[1A\n\033[K-----------------------\033[47;30m WORKERMAN \033[0m-----------------------------\n\033[0m";
-        echo 'Workerman version:' . Worker::VERSION . "          PHP version:".PHP_VERSION."\n";
+        echo 'Workerman version:' , Worker::VERSION , "          PHP version:",PHP_VERSION,"\n";
         echo "------------------------\033[47;30m WORKERS \033[0m-------------------------------\n";
         echo "\033[47;30muser\033[0m",str_pad('', self::$_maxUserNameLength+2-strlen('user')), "\033[47;30mworker\033[0m",str_pad('', self::$_maxWorkerNameLength+2-strlen('worker')), "\033[47;30mlisten\033[0m",str_pad('', self::$_maxSocketNameLength+2-strlen('listen')), "\033[47;30mprocesses\033[0m \033[47;30m","status\033[0m\n";
         foreach(self::$_workers as $worker)
@@ -418,6 +430,16 @@ class Worker
             echo str_pad($worker->user, self::$_maxUserNameLength+2),str_pad($worker->name, self::$_maxWorkerNameLength+2),str_pad($worker->getSocketName(), self::$_maxSocketNameLength+2), str_pad(' '.$worker->count, 9), " \033[32;40m [OK] \033[0m\n";;
         }
         echo "----------------------------------------------------------------\n";
+        if(self::$daemonize)
+        {
+            global $argv;
+            $start_file = $argv[0];
+            echo "Input \"php $start_file stop\" to quit. Start success.\n";
+        }
+        else
+        {
+            echo "Press Ctrl-C to quit. Start success.\n";
+        }
     }
     
     /**
@@ -442,7 +464,19 @@ class Worker
         $command2 = isset($argv[2]) ? $argv[2] : '';
         
         // 记录日志
-        self::log("Workerman[$start_file] $command");
+        $mode = '';
+        if($command === 'start')
+        {
+            if($command2 === '-d')
+            {
+                $mode = 'in DAEMON mode';
+            }
+            else
+            {
+                $mode = 'in DEBUG mode';
+            }
+        }
+        self::log("Workerman[$start_file] $command $mode");
         
         // 检查主进程是否在运行
         $master_pid = @file_get_contents(self::$pidFile);
@@ -464,7 +498,7 @@ class Worker
         {
             // 启动 workerman
             case 'start':
-                if($command2 == '-d')
+                if($command2 === '-d')
                 {
                     Worker::$daemonize = true;
                 }
@@ -516,7 +550,7 @@ class Worker
                         exit(0);
                     }
                     // -d 说明是以守护进程的方式启动
-                    if($command2 == '-d')
+                    if($command2 === '-d')
                     {
                         Worker::$daemonize = true;
                     }
@@ -584,7 +618,7 @@ class Worker
                 break;
             // reload
             case SIGUSR1:
-                self::$_pidsToRestart = self::getAllWorkerPids();;
+                self::$_pidsToRestart = self::getAllWorkerPids();
                 self::reload();
                 break;
             // show status
@@ -606,7 +640,7 @@ class Worker
         }
         umask(0);
         $pid = pcntl_fork();
-        if(-1 == $pid)
+        if(-1 === $pid)
         {
             throw new Exception('fork fail');
         }
@@ -614,13 +648,13 @@ class Worker
         {
             exit(0);
         }
-        if(-1 == posix_setsid())
+        if(-1 === posix_setsid())
         {
             throw new Exception("setsid fail");
         }
         // fork again avoid SVR4 system regain the control of terminal
         $pid = pcntl_fork();
-        if(-1 == $pid)
+        if(-1 === $pid)
         {
             throw new Exception("fork fail");
         }
@@ -732,6 +766,11 @@ class Worker
         // 子进程运行
         elseif(0 === $pid)
         {
+            // 启动过程中尝试重定向标准输出
+            if(self::$_status === self::STATUS_STARTING)
+            {
+                self::resetStd();
+            }
             self::$_pidMap = array();
             self::$_workers = array($worker->workerId => $worker);
             Timer::delAll();
@@ -1008,7 +1047,7 @@ class Worker
         
         // 子进程部分
         $worker = current(self::$_workers);
-        $wrker_status_str = posix_getpid()."\t".str_pad(round(memory_get_usage()/(1024*1024),2)."M", 7)." " .str_pad($worker->getSocketName(), self::$_maxSocketNameLength) ." ".str_pad(($worker->name == $worker->getSocketName() ? 'none' : $worker->name), self::$_maxWorkerNameLength)." ";
+        $wrker_status_str = posix_getpid()."\t".str_pad(round(memory_get_usage(true)/(1024*1024),2)."M", 7)." " .str_pad($worker->getSocketName(), self::$_maxSocketNameLength) ." ".str_pad(($worker->name === $worker->getSocketName() ? 'none' : $worker->name), self::$_maxWorkerNameLength)." ";
         $wrker_status_str .= str_pad(ConnectionInterface::$statistics['connection_count'], 11)." ".str_pad(ConnectionInterface::$statistics['total_request'], 14)." ".str_pad(ConnectionInterface::$statistics['send_fail'],9)." ".str_pad(ConnectionInterface::$statistics['throw_exception'],15)."\n";
         file_put_contents(self::$_statisticsFile, $wrker_status_str, FILE_APPEND);
     }
@@ -1023,11 +1062,11 @@ class Worker
         {
             $error_msg = "WORKER EXIT UNEXPECTED ";
             $errors = error_get_last();
-            if($errors && ($errors['type'] == E_ERROR ||
-                     $errors['type'] == E_PARSE ||
-                     $errors['type'] == E_CORE_ERROR ||
-                     $errors['type'] == E_COMPILE_ERROR || 
-                     $errors['type'] == E_RECOVERABLE_ERROR ))
+            if($errors && ($errors['type'] === E_ERROR ||
+                     $errors['type'] === E_PARSE ||
+                     $errors['type'] === E_CORE_ERROR ||
+                     $errors['type'] === E_COMPILE_ERROR || 
+                     $errors['type'] === E_RECOVERABLE_ERROR ))
             {
                 $error_msg .= self::getErrorType($errors['type']) . " {$errors['message']} in {$errors['file']} on line {$errors['line']}";
             }
@@ -1157,6 +1196,8 @@ class Worker
         
         // flag
         $flags =  $this->transport === 'udp' ? STREAM_SERVER_BIND : STREAM_SERVER_BIND | STREAM_SERVER_LISTEN;
+        $errno = 0;
+        $errmsg = '';
         $this->_mainSocket = stream_socket_server($this->transport.":".$address, $errno, $errmsg, $flags, $this->_context);
         if(!$this->_mainSocket)
         {
