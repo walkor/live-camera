@@ -3,9 +3,9 @@
 
 ##  在线示例
 
-1、摄像头录制页面 http://live-camera.workerman.net/camera.html
+1、摄像头录制页面 http://www.workerman.net/demos/live-camera/camera.html
 
-2、实时接收视频流页面 http://live-camera.workerman.net/
+2、实时接收视频流页面 http://www.workerman.net/demos/live-camera/
 
 
 ##  使用方法
