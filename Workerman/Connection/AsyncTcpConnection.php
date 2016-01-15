@@ -89,13 +89,7 @@ class AsyncTcpConnection extends TcpConnection
     {
         if($this->onError)
         {
-            try{
-                call_user_func($this->onError, $this, $code, $msg);
-            }
-            catch(Exception $e)
-            {
-                echo $e;
-            }
+            call_user_func($this->onError, $this, $code, $msg);
         }
     }
     
@@ -122,18 +116,12 @@ class AsyncTcpConnection extends TcpConnection
             }
             // 标记状态为连接已经建立
             $this->_status = self::STATUS_ESTABLISH;
+            // 获得远端实际ip端口
+            $this->_remoteAddress = stream_socket_get_name($this->_socket, true);
             // 如果有设置onConnect回调，则执行
             if($this->onConnect)
             {
-                try 
-                {
-                    call_user_func($this->onConnect, $this);
-                }
-                catch(Exception $e)
-                {
-                    self::$statistics['throw_exception']++;
-                    echo $e;
-                }
+                call_user_func($this->onConnect, $this);
             }
         }
         else

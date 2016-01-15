@@ -201,7 +201,7 @@ class Websocket implements \Workerman\Protocols\ProtocolInterface
     public static function encode($buffer, ConnectionInterface $connection)
     {
         $len = strlen($buffer);
-        if(empty($connection->websocketHandshake))
+        if(empty($connection->websocketType))
         {
             // 默认是utf8文本格式
             $connection->websocketType = self::BINARY_TYPE_BLOB;
@@ -331,19 +331,15 @@ class Websocket implements \Workerman\Protocols\ProtocolInterface
                 $connection->tmpWebsocketData = '';
             }
             // blob or arraybuffer
-            $connection->websocketType = self::BINARY_TYPE_BLOB; 
+            if(empty($connection->websocketType))
+            {
+                $connection->websocketType = self::BINARY_TYPE_BLOB;
+            } 
             // 如果有设置onWebSocketConnect回调，尝试执行
             if(isset($connection->onWebSocketConnect))
             {
                 self::parseHttpHeader($buffer);
-                try
-                {
-                    call_user_func($connection->onWebSocketConnect, $connection, $buffer);
-                }
-                catch(\Exception $e)
-                {
-                    echo $e;
-                }
+                call_user_func($connection->onWebSocketConnect, $connection, $buffer);
                 $_GET = $_COOKIE = $_SERVER = array();
             }
             return 0;
