@@ -33,7 +33,9 @@
                     throw e;
                 }
             }
-            socket.send(back.toDataURL("image/jpeg", 0.5));
+            if(video.src){
+                socket.send(back.toDataURL("image/jpeg", 0.5));
+            }
             setTimeout(draw, 100);
         }
         navigator.getUserMedia = navigator.getUserMedia || navigator.webkitGetUserMedia ||
