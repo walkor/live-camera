@@ -3,6 +3,8 @@
 
 ##  在线示例
 
+提示：最好用火狐测试，谷歌浏览器升级了安全策略，谷歌浏览器只能在https下才能利用html5打开摄像头。
+
 1、摄像头录制页面 http://www.workerman.net/demos/live-camera/camera.html
 
 2、实时接收视频流页面 http://www.workerman.net/demos/live-camera/
