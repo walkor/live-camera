@@ -10,11 +10,15 @@
 2、实时接收视频流页面 http://www.workerman.net/demos/live-camera/
 
 
-##  使用方法
+##  使用方法(linux 系统)
 
-1、运行 php start.php start -d
+1、下载 或者 ```git clone https://github.com/walkor/live-camera```
 
-2、录制摄像的页面为 http://127.0.0.1:8088/camera.html
+2、运行 ```composer install```
 
-3、接收视频流的页面为 http://127.0.0.1:8088/
+3、运行 php start.php start -d
+
+4、录制摄像的页面为 http://127.0.0.1:8088/camera.html
+
+5、接收视频流的页面为 http://127.0.0.1:8088/
 
