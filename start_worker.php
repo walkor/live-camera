@@ -12,8 +12,9 @@
  * @license http://www.opensource.org/licenses/mit-license.php MIT License
  */
 use \Workerman\Worker;
-use \Workerman\WebServer;
 use \Workerman\Protocols\Websocket;
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 $recv_worker = new Worker('Websocket://0.0.0.0:8080');
 $recv_worker->onWorkerStart = function($recv_worker)
