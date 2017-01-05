@@ -13,7 +13,8 @@
  */
 use \Workerman\Worker;
 use \Workerman\WebServer;
-use \Workerman\Protocols\Websocket;
+
+require_once __DIR__ . '/vendor/autoload.php';
 
 // WebServer
 $web = new WebServer("http://0.0.0.0:8088");
