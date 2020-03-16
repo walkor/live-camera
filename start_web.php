@@ -24,7 +24,7 @@ $web = new Worker("http://0.0.0.0:8088");
 $web->count = 2;
 $web->name = 'web';
 
-define('WEBROOT', __DIR__ . '/Web');
+define('WEBROOT', __DIR__ . DIRECTORY_SEPARATOR . 'Web');
 
 $web->onMessage = function (TcpConnection $connection, Request $request) {
     $path = $request->path();
