@@ -18,7 +18,7 @@
         var video = document.getElementsByTagName('video')[0];
         
         var success = function(stream){
-            video.src = window.URL.createObjectURL(stream);
+            video.srcObject = stream;
         }
 
         socket.onopen = function(){
